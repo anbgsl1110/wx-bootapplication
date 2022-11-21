@@ -1,5 +1,6 @@
 package com.modules.system.api;
 
+import com.modules.common.annotation.IgnoreSecurity;
 import com.modules.common.oauth.Result;
 import com.modules.common.oauth.ResultStatusCode;
 import io.swagger.annotations.Api;
@@ -13,6 +14,7 @@ import javax.annotation.Resource;
 @RestController
 @RequestMapping("api/test")
 @Api(tags = "测试api")
+@IgnoreSecurity
 public class TestController {
     /**
      * 测试

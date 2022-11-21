@@ -15,7 +15,7 @@ import java.io.IOException;
 import java.util.HashMap;
 
 /**
- * @author
+ * @author chenlingl
  */
 public abstract class OpenApi {
 
@@ -27,17 +27,32 @@ public abstract class OpenApi {
     /**
      * 接口请求地址
      */
-    public String HostUrl = "https://api.weixin.qq.com/card/";
-    public static final String url = "https://api.weixin.qq.com/sns/jscode2session";
+    public static final String HOST_URL = "https://api.weixin.qq.com/card/";
+    public static final String URL = "https://api.weixin.qq.com/sns/jscode2session";
 
     public static AccessToken token;
 
     public static String grantType = "authorization_code";
-    public static String appId = "wxb77348a94ff13e2f";                    //微信公众号appid
-    public static String secret = "9c9e6ad4a592f641364b126399f03952";    //微信公众号密钥
-    public static String mchId = "";                            //微信商户号
-    public static String tradeType = "";                            //微信支付交易类型
-    public static String key = "";     //微信商户端密匙
+    /**
+     * 微信公众号appid
+     */
+    public static String appId = "wxb77348a94ff13e2f";
+    /**
+     * 微信公众号密钥
+     */
+    public static String secret = "9c9e6ad4a592f641364b126399f03952";
+    /**
+     * 微信商户号
+     */
+    public static String mchId = "";
+    /**
+     * 微信支付交易类型
+     */
+    public static String tradeType = "";
+    /**
+     * 微信商户端密匙
+     */
+    public static String key = "";
 
     /**
      * @return
@@ -47,11 +62,10 @@ public abstract class OpenApi {
      * @param：api的http请求包体的model，或者为json格式的请求字符串
      */
     public static String getWeixinData(String jsCode) {
-        String httpUrl = url + "?appid=" + OpenApi.appId + "&secret=" + OpenApi.secret + "&js_code=" + jsCode
+        String httpUrl = URL + "?appid=" + OpenApi.appId + "&secret=" + OpenApi.secret + "&js_code=" + jsCode
                 + "&grant_type=" + OpenApi.grantType;
         // 发送请求，返回Json字符串
-        String str = WeChatUtil.httpRequest(httpUrl, "GET", null);
-        return str;
+        return WeChatUtil.httpRequest(httpUrl, "GET", null);
     }
 
     protected void Init(HashMap<String, String> dicArg) {
@@ -83,12 +97,12 @@ public abstract class OpenApi {
      * @throws JsonParseException
      * @throws IOException
      */
-    public String GetRequestUrl(HashMap<String, String> dicArg) throws WeixinException, JsonParseException, IOException {
+    public String getRequestUrl(HashMap<String, String> dicArg) throws WeixinException, JsonParseException, IOException {
         //初始化基础请求参数
         Init(dicArg);
 
         StringBuilder sbUrl = new StringBuilder();
-        sbUrl.append(HostUrl)
+        sbUrl.append(HOST_URL)
                 .append(method)
                 .append("?access_token=");
         getToken();

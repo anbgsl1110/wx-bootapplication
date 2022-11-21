@@ -1,6 +1,6 @@
 package com.modules.system.service;
+import com.github.pagehelper.PageInfo;
 import com.modules.system.entity.User;
-import com.modules.common.generator.utils.PageInfo;
 import com.modules.system.query.UserQuery;
 
 import java.util.List;
@@ -51,16 +51,6 @@ public interface UserService {
     * @return int
     */
     int update(Long id,User entity);
-    /**
-    * 获取分页数据
-    * @author chenTom
-    * @date 2020-07-23 16:18:12
-    * @param query
-    * @param page
-    * @param size
-    * @return com.modules.system.common.generator.utils.PageInfo
-    */
-    PageInfo<User> page(UserQuery query, int page, int size);
     /**
     * 下一条数据
     * @author chenTom

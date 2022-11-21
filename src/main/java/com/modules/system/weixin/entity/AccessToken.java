@@ -1,5 +1,8 @@
 package com.modules.system.weixin.entity;
 
+/**
+ * @author chenlingl
+ */
 public class AccessToken extends BaseResponse{
 
     private String access_token;

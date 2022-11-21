@@ -1,16 +1,17 @@
 package com.modules.system.dao;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.modules.system.entity.User;
-import com.modules.common.generator.utils.MyMapper;
 import org.apache.ibatis.annotations.ResultType;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Options;
+import tk.mybatis.mapper.common.ExampleMapper;
 
 /**
 * @author chenTom
 *
 *@date 2020-07-23 16:18:12
 */
-public interface UserDao extends MyMapper<User> {
+public interface UserDao extends BaseMapper<User>, ExampleMapper<User> {
     /**
     * 下一页
     * @author chenTom
@@ -27,15 +28,6 @@ public interface UserDao extends MyMapper<User> {
     * @return com.modules.system.entity.User
     */
     User prev(Long id);
-    /**
-    * 覆盖原来的接口方法设置默认自增
-    * @author chenTom
-    * @date  2020-07-23 16:18:12
-    * @param record
-    * @return int
-    */
-    @Options(useGeneratedKeys = true, keyProperty = "id", keyColumn = "id") // id自动增长
-    int insert(User record);
     /**
     * 获取最后一个编号
     * @author caizx

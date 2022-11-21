@@ -1,25 +1,28 @@
 package com.modules.system.api;
 
 import com.alibaba.fastjson.JSONObject;
+import com.google.common.base.Throwables;
 import com.modules.common.annotation.IgnoreSecurity;
-import com.modules.common.oauth.Audience;
+import com.modules.common.base.BaseController;
+import com.modules.common.oauth.AudienceProperties;
+import com.modules.common.oauth.JwtHelper;
 import com.modules.common.oauth.Result;
 import com.modules.common.oauth.ResultStatusCode;
-import com.modules.common.oauth.JwtHelper;
 import com.modules.common.utils.RedisUtils;
-import com.modules.common.base.BaseController;
-import com.modules.system.entity.User;
 import com.modules.system.entity.Account;
-import com.modules.system.vo.PhoneVo;
+import com.modules.system.entity.User;
 import com.modules.system.service.UserService;
+import com.modules.system.vo.PhoneRequest;
 import com.modules.system.weixin.common.OpenApi;
-import com.modules.system.weixin.utils.WeChatUtil;
 import io.jsonwebtoken.Claims;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.apache.commons.lang.StringUtils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import org.weixin4j.WeixinException;
 
 import javax.annotation.Resource;
@@ -28,27 +31,34 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.AlgorithmParameters;
 import java.security.Security;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author v_vllchen
  */
 @RestController
 @RequestMapping("/login")
-@Api(value = "LoginController", tags = {"LoginController"}, description = "登录")
+@Api(value = "LoginController", tags = {"LoginController"})
 public class LoginController extends BaseController {
     @Resource
     private UserService userInfoService;
     @Resource
-    private Audience audience;
+    private AudienceProperties audienceProperties;
     @Resource
     private RedisUtils redisUtils;
 
     /**
+     * 登陆/注册
+     * @param account
      * @return
-     * @Description:登陆/注册
+     * @throws WeixinException
+     * @throws IOException
      */
     @PostMapping(value = "login")
     @ApiOperation("登陆/注册")
@@ -76,29 +86,29 @@ public class LoginController extends BaseController {
             String HeadStr = redisToken.substring(0, 6).toLowerCase();
             if (HeadStr.equals("bearer")) {
                 redisToken = redisToken.substring(6);
-                Claims claims = JwtHelper.parseJWT(redisToken, audience.getBase64Secret());
+                Claims claims = JwtHelper.parseJWT(redisToken, audienceProperties.getBase64Secret());
                 //判断密钥是否相等，如果不等则认为时无效的token
                 if (claims != null) {
                     return new Result(ResultStatusCode.LOGINED_IN.getCode(), ResultStatusCode.LOGINED_IN.getMsg(), null);
                 }
             }
         }
-        return new Result(ResultStatusCode.OK, redisLoginInfo(user));
+        return Result.success(redisLoginInfo(user));
     }
 
-    public Map<String, Object> redisLoginInfo(User user) {
+    private Map<String, Object> redisLoginInfo(User user) {
         //设置单次的token的过期时间为凌晨3点-4点，用于避免token在即将失效时继续使用旧的token访问
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.DAY_OF_MONTH, +1);
         cal.set(Calendar.HOUR_OF_DAY, 3);
         //拼装accessToken
         String accessToken = JwtHelper.createJWT(user.getPhone(), user.getId(),
-                audience.getClientId(), audience.getName(),
-                cal.getTimeInMillis() - System.currentTimeMillis(), audience.getBase64Secret());
+                audienceProperties.getClientId(), audienceProperties.getName(),
+                cal.getTimeInMillis() - System.currentTimeMillis(), audienceProperties.getBase64Secret());
         //将该用户的access_token储存到redis服务器，保证一段时间内只能有一个有效的access_token
         redisUtils.setToken(user.getId(), accessToken, cal.getTimeInMillis() - System.currentTimeMillis());
         //获取refresh_token，有效期为7天，每次通过refresh_token获取access_token时，会刷新refresh_token的时间
-        String refreshToken = JwtHelper.createRefreshToken(user.getPhone(), user.getId(), audience.getClientId(), audience.getName(), audience.getBase64Secret());
+        String refreshToken = JwtHelper.createRefreshToken(user.getPhone(), user.getId(), audienceProperties.getClientId(), audienceProperties.getName(), audienceProperties.getBase64Secret());
         redisUtils.setRefreshToken(user.getId(), refreshToken);
         Map<String, Object> result = new HashMap<String, Object>();
         result.put("access_token", "bearer" + accessToken);
@@ -108,9 +118,9 @@ public class LoginController extends BaseController {
     }
 
     /**
-     * @param
+     * 用户退出登陆
+     * @param request
      * @return
-     * @Description: 用户退出登陆
      */
     @PostMapping(value = "logout")
     @ApiOperation("用户退出登陆")
@@ -121,15 +131,16 @@ public class LoginController extends BaseController {
     }
 
     /**
+     * 用于检测token是否还有效，如果无效则可以通过getToken方法获取新的token
      * @return
-     * @Description: 用于检测token是否还有效，如果无效则可以通过getToken方法获取新的token
      */
     @PostMapping(value = "checkToken")
     @ApiOperation("用于检测token是否还有效，如果无效则可以通过getToken方法获取新的token")
     @IgnoreSecurity
     public Result checkToken() {
-        return new Result(ResultStatusCode.OK.getCode(), ResultStatusCode.OK.getMsg(), null);
+        return Result.success(null);
     }
+
 
     /**
      * @return
@@ -146,14 +157,14 @@ public class LoginController extends BaseController {
                 String HeadStr = refreshToken.substring(0, 6).toLowerCase();
                 if (HeadStr.equals("bearer")) {
                     refreshToken = refreshToken.substring(6);
-                    Claims claims = JwtHelper.parseJWT(refreshToken, audience.getBase64Secret());
+                    Claims claims = JwtHelper.parseJWT(refreshToken, audienceProperties.getBase64Secret());
                     //判断密钥是否相等，如果不等则认为时无效的token
                     if (claims != null) {
                         //refresh_token未失效，refresh_token需要和redis服务器中的储存的refresh_token值一样才有效
                         Long userId = (Long) claims.get("userId");
                         System.out.println(claims.getAudience());
                         System.out.println(redisUtils.getRefreshToken(userId));
-                        if (claims.getAudience().equals(audience.getClientId()) && refreshToken.equals(redisUtils.getRefreshToken(userId))) {
+                        if (claims.getAudience().equals(audienceProperties.getClientId()) && refreshToken.equals(redisUtils.getRefreshToken(userId))) {
                             User user = userInfoService.get(userId);
                             Map<String,String> tokenVO = new HashMap<>();
                             Map<String, Object> resultToken = redisLoginInfo(user);
@@ -176,8 +187,14 @@ public class LoginController extends BaseController {
     }
 
 
-    //解析电话号码
-    public JSONObject getPhoneNumber(String session_key, String encryptedData, String iv) {
+    /**
+     * 解析电话号码
+     * @param session_key
+     * @param encryptedData
+     * @param iv
+     * @return
+     */
+    private JSONObject getPhoneNumber(String session_key, String encryptedData, String iv) {
         System.out.println(session_key);
         byte[] dataByte = org.bouncycastle.util.encoders.Base64.decode(encryptedData);
         // 加密秘钥
@@ -200,14 +217,14 @@ public class LoginController extends BaseController {
             SecretKeySpec spec = new SecretKeySpec(keyByte, "AES");
             AlgorithmParameters parameters = AlgorithmParameters.getInstance("AES");
             parameters.init(new IvParameterSpec(ivByte));
-            cipher.init(Cipher.DECRYPT_MODE, spec, parameters);// 初始化
+            cipher.init(Cipher.DECRYPT_MODE, spec, parameters);
             byte[] resultByte = cipher.doFinal(dataByte);
             if (null != resultByte && resultByte.length > 0) {
-                String result = new String(resultByte, "UTF-8");
+                String result = new String(resultByte, StandardCharsets.UTF_8);
                 return JSONObject.parseObject(result);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("解析异常，异常信息:[{}]", Throwables.getStackTraceAsString(e));
         }
         return null;
     }
@@ -216,14 +233,13 @@ public class LoginController extends BaseController {
     @PostMapping(value = "getPhoneByWeChat")
     @ApiOperation("授权手机号")
     @IgnoreSecurity
-    public Result getPhoneByWeChat(@RequestBody PhoneVo phoneVo) {
+    public Result getPhoneByWeChat(@RequestBody PhoneRequest phoneRequest) {
         try {
             //解密电话号码
-            JSONObject obj = getPhoneNumber(phoneVo.getSessionKey(), phoneVo.getEncryptedData(), phoneVo.getIv());
-            return new Result(ResultStatusCode.PHONE_SUCCESS, obj);
+            JSONObject obj = getPhoneNumber(phoneRequest.getSessionKey(), phoneRequest.getEncryptedData(), phoneRequest.getIv());
+            return Result.success(obj);
         } catch (Exception e) {
-            e.printStackTrace();
-            return new Result(ResultStatusCode.SYSTEM_ERR);
+            return Result.fail(ResultStatusCode.SYSTEM_ERR);
         }
     }
 

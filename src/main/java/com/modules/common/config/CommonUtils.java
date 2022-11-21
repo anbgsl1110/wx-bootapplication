@@ -4,8 +4,15 @@ import org.apache.commons.lang.StringUtils;
 
 import javax.servlet.http.HttpServletRequest;
 
+/**
+ * @author chenlingl
+ */
 public class CommonUtils {
-    //获取客户端ip
+    /**
+     * 获取客户端ip
+     * @param request
+     * @return
+     */
     public static String getIp(HttpServletRequest request) {
         String ip = request.getHeader("X-Forwarded-For");
         if(StringUtils.isNotEmpty(ip) && !"unKnown".equalsIgnoreCase(ip)){

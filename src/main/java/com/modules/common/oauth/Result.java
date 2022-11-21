@@ -9,10 +9,9 @@ import lombok.Data;
  */
 @Data
 public class Result {
-	private int code;		//返回的代码，0表示成功，其他表示失败
-    private String msg;		//成功或失败时返回的错误信息
-
-    private Object data;	//成功时返回的数据信息
+	private int code;
+    private String msg;
+    private Object data;
 
 	public Result(ResultStatusCode resultStatusCode, Object data){
 		this.code = resultStatusCode.getCode();
@@ -31,6 +30,23 @@ public class Result {
 	}
 	public Result(ResultStatusCode resultStatusCode){
     	this(resultStatusCode, null);
+	}
+
+	public static Result success(Object data) {
+		return new Result(ResultStatusCode.OK.getCode(),ResultStatusCode.OK.getMsg(),data);
+	}
+
+	public static Result fail(String errorMsg) {
+		return new Result(1,errorMsg,null);
+	}
+
+	public static Result fail(int code,String errorMsg) {
+		return new Result(code,errorMsg,null);
+	}
+
+
+	public static Result fail(ResultStatusCode resultStatusCode) {
+		return new Result(resultStatusCode.getCode(),resultStatusCode.getMsg(),null);
 	}
 
 

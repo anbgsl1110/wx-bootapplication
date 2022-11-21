@@ -48,8 +48,8 @@ public class JwtHelper {
         JwtBuilder builder = Jwts.builder().setHeaderParam("typ", "JWT")
                                         .claim("unique_name", name)
                                         .claim("userId", userId)
-                                        .setIssuer(issuer)		//设置发行人
-                                        .setAudience(audience)	//设置角色
+                                        .setIssuer(issuer)
+                                        .setAudience(audience)
                                         .signWith(signatureAlgorithm, signingKey);
          //添加Token过期时间
         if (TTLMillis >= 0) {
@@ -57,7 +57,6 @@ public class JwtHelper {
             Date exp = new Date(expMillis);
             builder.setExpiration(exp).setNotBefore(now);
         }
-
          //生成JWT
         return builder.compact();
     }
